@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recipe Finder</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      padding: 20px;
+      margin: 0;
+    }
+
+    header {
+      background-color: rgb(26, 26, 26);
+      padding: 20px;
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      outline: 2px solid rgb(191, 86, 114);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      text-shadow: 4px 4px 8px rgb(191, 86, 114);
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 20px;
+      padding: 0;
+      margin: 0;
+    }
+
+    nav a {
+      color: aliceblue;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      color: rgb(191, 86, 114);
+    }
+
+    main {
+      padding: 100px 20px 80px;
+      background-color: whitesmoke;
+      min-height: 100vh;
+    }
+
+    .search-form {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    #search-input,
+    #search-button {
+      padding: 10px;
+      border: none;
+      border-radius: 20px;
+      font-size: 16px;
+    }
+
+    #search-input {
+      width: 250px;
+      margin-right: 10px;
+    }
+
+    #search-button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    #search-button:hover {
+      background-color: #45a049;
+    }
+
+    .recipe {
+      margin: 10px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    .recipe img {
+      width: 200px;
+      height: 200px;
+      border-radius: 10px;
+    }
+
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .recipe-details {
+      display: none;
+      background: #fff;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+
+    footer {
+      background-color: rgb(26, 26, 26);
+      color: white;
+      text-align: center;
+      padding: 20px;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      outline: 2px solid rgb(191, 86, 114);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Recipe Finder</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Easily find a recipe of your liking</h2>
+    <p>Welcome to Recipe Explorer! Search for meals and get step-by-step instructions with vibrant photos.</p>
+
+    <form id="search-form" class="search-form">
+      <input type="text" id="search-input" placeholder="Search for recipes..." />
+      <button id="search-button" type="submit">Search</button>
+    </form>
+
+    <div id="results"></div>
+    <div id="recipeGallery" class="gallery"></div>
+    <div id="recipeDetails" class="recipe-details"></div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Recipe Finder. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const gallery = document.getElementById("recipeGallery");
+    const recipeDetails = document.getElementById("recipeDetails");
+    const apiUrl = "https://www.themealdb.com/api/json/v1/1/search.php?s=";
+
+    // Load recipes on page load
+    async function fetchRecipes() {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      displayRecipes(data.meals);
+    }
+
+    function displayRecipes(recipes) {
+      gallery.innerHTML = '';
+      recipes.forEach((recipe) => {
+        const recipeDiv = document.createElement("div");
+        recipeDiv.className = "recipe";
+        recipeDiv.innerHTML = `
+          <img src="${recipe.strMealThumb}" alt="${recipe.strMeal}">
+          <p>${recipe.strMeal}</p>
+        `;
+        recipeDiv.addEventListener("click", () => showRecipeDetails(recipe.idMeal));
+        gallery.appendChild(recipeDiv);
+      });
+    }
+
+    async function showRecipeDetails(id) {
+      try {
+        const res = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`);
+        const data = await res.json();
+        const recipe = data.meals[0];
+
+        recipeDetails.innerHTML = `
+          <h2>${recipe.strMeal}</h2>
+          <img src="${recipe.strMealThumb}" alt="${recipe.strMeal}" />
+          <h3>Ingredients:</h3>
+          <ul>
+            ${Object.keys(recipe)
+              .filter(k => k.startsWith("strIngredient") && recipe[k])
+              .map(k => `<li>${recipe[k]}</li>`)
+              .join("")}
+          </ul>
+          <h3>Instructions:</h3>
+          <p>${recipe.strInstructions}</p>
+        `;
+        recipeDetails.style.display = "block";
+        window.scrollTo({ top: recipeDetails.offsetTop, behavior: "smooth" });
+      } catch (error) {
+        console.error("Error loading recipe details:", error);
+        recipeDetails.innerHTML = "<p>Failed to load recipe details.</p>";
+      }
+    }
+
+    // Search functionality
+    document.getElementById("search-button").addEventListener("click", async function (event) {
+      event.preventDefault();
+      const query = document.getElementById("search-input").value;
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+
+      if (query) {
+        try {
+          const res = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`);
+          const data = await res.json();
+          if (data.meals) {
+            displayRecipes(data.meals);
+          } else {
+            resultsDiv.innerHTML = "<p>No results found.</p>";
+          }
+        } catch (error) {
+          console.error("Error fetching search results:", error);
+          resultsDiv.innerHTML = "<p>Error fetching data.</p>";
+        }
+      } else {
+        resultsDiv.innerHTML = "<p>Please enter a search term.</p>";
+      }
+    });
+
+    fetchRecipes();
+  </script>
+</body>
+</html>
